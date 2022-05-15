@@ -2,7 +2,7 @@
 
 ## Description
 The script in this repository (file `.clean_docker.sh`):
-1. deletes all Docker containers including volumes use
+1. deletes all Docker containers including volumes in use
 2. deletes all Docker images
 
 ## How to Use
