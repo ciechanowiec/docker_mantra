@@ -6,21 +6,23 @@
 #                                                #
 # ============================================== #
 
+# Directories
 scriptDir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 tempDir="${HOME}/.temp"
-bashrcFile="${HOME}/.bashrc"
 currentDir=$(pwd)
+# Files
+bashrcFile="${HOME}/.bashrc"
+cleanDockerScriptBaseName=".clean_docker.sh"
+cleanDockerScriptInitLocation="${scriptDir}/${cleanDockerScriptBaseName}"
+# Formats
 boldRed="\e[1;91m"
 boldBlue="\e[1;34m"
 resetFormat="\e[0m"
-cleanDockerScriptBaseName=".clean_docker.sh"
-cleanDockerScriptInitLocation="${scriptDir}/${cleanDockerScriptBaseName}"
-
+# Functions
 printProcessMessage () {
   message=$1
   printf "${boldBlue}${message}${resetFormat}\n"
 }
-
 printCustomErrorAndExit () {
   errorMessageContent=$1
   errorMessage="${boldRed}${errorMessageContent}${resetFormat}\n"
@@ -29,7 +31,6 @@ printCustomErrorAndExit () {
   printf "${exitMessage}\n"
   exit 1
 }
-
 printInvalidDirErrorAndExit () {
   errorMessage="${boldRed}Error during directory manipulation occurred${resetFormat}"
   exitMessage="${boldRed}EXITING THE SCRIPT...${resetFormat}\n"
@@ -37,9 +38,9 @@ printInvalidDirErrorAndExit () {
   printf "${exitMessage}\n"
   exit 1
 }
-
-printProcessMessage "Going to the temporary directory where installation
-    will be performed ($tempDir)..."
+# Go to a temporary directory
+printProcessMessage "Going to the temporary directory where the
+    installation will be performed ($tempDir)..."
 if [ -d $tempDir ]
 then
   cd "$tempDir" || printInvalidDirErrorAndExit
@@ -56,16 +57,26 @@ fi
 
 printProcessMessage "\nPREREQUISITES CHECK..."
 
+actualLinuxRelease=$(lsb_release -i)
+
 if ! command curl --version &> /dev/null
 then
 		printCustomErrorAndExit "Error: 'curl' package isn't installed"
+
 elif [ ! -f "${cleanDockerScriptInitLocation}" ]
 then
     printCustomErrorAndExit "Error: '${cleanDockerScriptInitLocation}' file wasn't found"
+
 elif [ ! -f "${bashrcFile}" ]
 then
     printCustomErrorAndExit "Error: '${bashrcFile}' file wasn't found"
+
+elif [[ ! "$actualLinuxRelease" == *"Ubuntu"* ]]
+then
+    printCustomErrorAndExit "Error: Linux 'Ubuntu' distribution is required"
 fi
+
+printProcessMessage "Check was successful"
 
 # ============================================== #
 #                                                #
@@ -76,7 +87,7 @@ fi
 printProcessMessage "\nINSTALLING DOCKER..."
 
 printProcessMessage "Removing old Docker versions..."
-sudo apt remove --purge docker docker-engine docker.io containerd runc -y
+sudo apt remove docker docker-engine docker.io containerd runc -y
 sudo snap remove docker
 
 printProcessMessage "Installing Docker..."
@@ -88,21 +99,20 @@ sleep 7
 printProcessMessage "Setting Docker to be run without 'sudo' prefix..."
 sudo groupadd docker
 sudo usermod -aG docker $USER
-newgrp docker << EOF # This prevents the script from exiting after 'newgrp' command is executed
-echo The script now runs as group \$(id -gn)
-
-
-printProcessMessage "Running 'hello-world' Docker image to test installation..."
+# To run Docker without 'sudo' prefix, the reboot after the above commands is required.
+# However, it is possible to test without the reboot whether Docker without 'sudo' prefix
+# can be run. In order to do that, the 'newgrp docker' command should be executed.
+# By default, the 'newgrp docker' command will terminate the script. To prevent it,
+# it is needed to use a heredoc code block as shown below, where it is tested
+# whether Docker without 'sudo' prefix can be run. However, that 'newgrp docker'
+# command has only local effect for one session of the terminal. To run Docker without
+# 'sudo' prefix globally, reboot is required, as mentioned above
+newgrp docker << EOF
+printf "${boldBlue}Running 'hello-world' Docker image to test installation...${resetFormat}\n"
 docker run hello-world
-exitCodeForDockerRun=$?
-if [ "$exitCodeForDockerRun" -eq 0 ]
-then
-  printProcessMessage "Docker successfully installed"
-else
-  printCustomErrorAndExit "Error during Docker installation occurred"
-fi
 EOF
 
+printProcessMessage "Docker successfully installed"
 
 # ============================================== #
 #                                                #
@@ -123,16 +133,17 @@ printProcessMessage "Retrieving information about the latest Docker Compose vers
 # 1. Retrieves the source code of the webpage with latest Docker Compose releases:
 # https://github.com/docker/compose/releases
 # 2. Extracts from the retrieved data a list of latest Docker Compose releases
-# (those originally come from lines like <h1 data-view-component="true" class="d-inline mr-3"><a href="/docker/compose/releases/tag/v2.5.1" data-view-component="true" class="Link--primary">v2.5.1</a>)
+# (the information about the latest Docker Compose releases originally come from lines like
+# <h1 data-view-component="true" class="d-inline mr-3"><a href="/docker/compose/releases/tag/v2.5.1" data-view-component="true" class="Link--primary">v2.5.1</a>)
 # 3. Chooses the first line from the extracted list of latest Docker
-# Compose releases, i.e. the latest Docker Compose release
-latestDockerRelease=$(curl https://github.com/docker/compose/releases \
+# Compose releases, i.e. the line with the latest Docker Compose release
+latestDockerRelease=$(sudo curl https://github.com/docker/compose/releases \
 	| grep -oP '(?<=/docker/compose/releases/tag/).*(?=" data)' \
 	| head -1)
 
 printProcessMessage "Now the latest (${latestDockerRelease}) Docker Compose release will be downloaded and
     saved as executable file at /usr/local/bin/docker-compose, which
-    will make this software globally accessible as docker-compose..."
+    will make this software globally accessible as 'docker-compose'..."
 sudo curl -L "https://github.com/docker/compose/releases/download/${latestDockerRelease}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
 printProcessMessage "Setting the correct permissions so that the 'docker-compose' command is executable..."
@@ -154,10 +165,21 @@ fi
 # ============================================== #
 
 printProcessMessage "\nINSTALLING DOCKER CLEANER..."
+
 cp "$cleanDockerScriptInitLocation" "${HOME}"
-homePathToDockerScript="${HOME}/${cleanDockerScriptBaseName}"
-aliasForDockerCleaner="alias clean_docker='${homePathToDockerScript}'"
+
+homePathToCleanDockerScript="${HOME}/${cleanDockerScriptBaseName}"
+
+sudo chmod 755 "$homePathToCleanDockerScript"
+
+aliasForDockerCleaner="alias clean_docker='${homePathToCleanDockerScript}'"
+
 echo "$aliasForDockerCleaner" >> "$bashrcFile"
+
+printProcessMessage "Performing cleaning..."
+source "$homePathToCleanDockerScript"
+
+printProcessMessage "Docker cleaner installed"
 
 # ============================================== #
 #                                                #
