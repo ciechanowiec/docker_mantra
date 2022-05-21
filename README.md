@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Docker Cleaner Script
 
 ## Description
@@ -12,3 +13,8 @@ The script in this repository (file `.clean_docker.sh`):
 `alias clean_docker='~/.clean_docker.sh'`
 4. Restart all instances of the terminal 
 5. Now the script can be run by invoking the `clean_docker` command
+=======
+# dockerinstaller
+
+This project was created on 2022-05-21 from a template.
+>>>>>>> 40b4fdd (Init commit)
