@@ -9,12 +9,13 @@
 # Prerequisites:
 # - curl
 
+scriptDir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 tempDir=~/.temp
+currentDir=$(pwd)
 boldRed="\e[1;91m"
 boldBlue="\e[1;34m"
 resetFormat="\e[0m"
 errorMessage="${boldRed}ERROR OCCURRED${resetFormat}"
-currentDir=$(pwd)
 
 printProcessMessage () {
   message=$1
