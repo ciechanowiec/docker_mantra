@@ -13,5 +13,5 @@ The script in this repository (file `docker_install.sh`) setups Docker environme
 ## How to Use
 1. Clone this repository
 2. Give the script a permission to be run (`chmod 755 ~/docker_install.sh`)
-3. Run the script with a command `sudo ./docker_install.sh`
+3. Run the script with a command `sudo ~/docker_install.sh`
 4. Reboot
