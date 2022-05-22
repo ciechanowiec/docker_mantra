@@ -1,4 +1,4 @@
-# Docker Setup
+# Docker Mantra
 
 ## Description
 The script in this repository (file `docker_install.sh`) setups Docker environment and:
